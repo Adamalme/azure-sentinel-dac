@@ -11,6 +11,7 @@ resource "azurerm_log_analytics_workspace" "law" {
   resource_group_name = azurerm_resource_group.rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+  daily_quota_gb      = 1 # Lab cost guardrail: stop ingesting after 1 GB/day
 }
 
 # 3. Turn on Microsoft Sentinel on top of that workspace
