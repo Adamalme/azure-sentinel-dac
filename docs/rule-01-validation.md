@@ -34,3 +34,6 @@ Excluded the Azure Guest Configuration agent, which runs encoded PowerShell for 
 
 ## Evidence
 Screenshots are in `docs/evidence/` (account names and IPs blurred).
+![Sentinel deployed](evidence/screenshots/2026-10-05_sentinel-deployed_law-sentinel-dac.png)
+![Event 4688 test](evidence/screenshots/2026-10-13_rule01-test-4688.png)
+![Incident #3 with entities](evidence/screenshots/2026-10-13_rule01-incident3-entities.png)
