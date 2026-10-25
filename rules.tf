@@ -44,3 +44,49 @@ resource "azurerm_sentinel_alert_rule_scheduled" "encoded_powershell" {
     | project TimeGenerated, Computer, Account, CommandLine, ParentProcessName
   EOT
 }
+
+
+# Rule 2: Security event log cleared
+# MITRE ATT&CK: Defense Evasion (T1070, Indicator Removal: Clear Windows Event Logs T1070.001)
+# Data source: SecurityEvent (Event ID 1102, audit log cleared) via AMA + DCR
+resource "azurerm_sentinel_alert_rule_scheduled" "security_log_cleared" {
+  name                       = "security-log-cleared"
+  log_analytics_workspace_id = azurerm_sentinel_log_analytics_workspace_onboarding.sentinel.workspace_id
+  display_name               = "Security Event Log Cleared"
+  description                = "Detects when the Windows Security event log is cleared, a common way attackers hide their tracks."
+  severity                   = "High"
+  enabled                    = true
+
+  query_frequency = "PT1H"
+  query_period    = "PT1H"
+
+  trigger_operator  = "GreaterThan"
+  trigger_threshold = 0
+
+  tactics    = ["DefenseEvasion"]
+  techniques = ["T1070"]
+
+  entity_mapping {
+    entity_type = "Host"
+    field_mapping {
+      identifier  = "HostName"
+      column_name = "Computer"
+    }
+  }
+
+  entity_mapping {
+    entity_type = "Account"
+    field_mapping {
+      identifier  = "FullName"
+      column_name = "ClearedBy"
+    }
+  }
+
+  query = <<-EOT
+    SecurityEvent
+    | where EventID == 1102
+    // Account is empty for 1102; the user is stored inside EventData
+    | extend ClearedBy = coalesce(Account, extract(@"<SubjectUserName>([^<]+)</SubjectUserName>", 1, tostring(EventData)))
+    | project TimeGenerated, Computer, ClearedBy, Activity
+  EOT
+}
