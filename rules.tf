@@ -90,3 +90,48 @@ resource "azurerm_sentinel_alert_rule_scheduled" "security_log_cleared" {
     | project TimeGenerated, Computer, ClearedBy, Activity
   EOT
 }
+
+
+# Rule 3: User added to a privileged local group (e.g., Administrators)
+# MITRE ATT&CK: Persistence / Privilege Escalation (Account Manipulation T1098)
+# Data source: SecurityEvent (Event ID 4732, member added to security-enabled local group) via AMA + DCR
+resource "azurerm_sentinel_alert_rule_scheduled" "user_added_to_admins" {
+  name                       = "user-added-to-local-admins"
+  log_analytics_workspace_id = azurerm_sentinel_log_analytics_workspace_onboarding.sentinel.workspace_id
+  display_name               = "User Added to Local Administrators Group"
+  description                = "Detects a member being added to a privileged local group such as Administrators, a common persistence and privilege-escalation technique."
+  severity                   = "High"
+  enabled                    = true
+
+  query_frequency = "PT1H"
+  query_period    = "PT1H"
+
+  trigger_operator  = "GreaterThan"
+  trigger_threshold = 0
+
+  tactics    = ["Persistence", "PrivilegeEscalation"]
+  techniques = ["T1098"]
+
+  entity_mapping {
+    entity_type = "Host"
+    field_mapping {
+      identifier  = "HostName"
+      column_name = "Computer"
+    }
+  }
+
+  entity_mapping {
+    entity_type = "Account"
+    field_mapping {
+      identifier  = "FullName"
+      column_name = "SubjectUserName"
+    }
+  }
+
+  query = <<-EOT
+    SecurityEvent
+    | where EventID == 4732
+    | where TargetUserName in ("Administrators", "Remote Desktop Users", "Backup Operators")
+    | project TimeGenerated, Computer, SubjectUserName, MemberName, MemberSid, TargetUserName, Activity
+  EOT
+}
